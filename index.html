@@ -277,6 +277,67 @@ onresize = ()=>{
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
 };
+  <script>
+// -----------------------------
+// PART 2: WEATHER & 4D EFFECTS
+// -----------------------------
+
+// Dummy Wetterkarten-Texturen (keine API)
+const weatherTextures = {
+  rain: "https://i.ibb.co/jg3VHZg/rain.png",
+  storm: "https://i.ibb.co/Gpq2k9L/storm.png",
+  clouds: "https://i.ibb.co/5Yb82sQ/clouds.png"
+};
+
+// Wetter-Overlay
+const weatherOverlay = new THREE.Mesh(
+  new THREE.SphereGeometry(1.02,64,64),
+  new THREE.MeshBasicMaterial({transparent:true, opacity:0.4})
+);
+scene.add(weatherOverlay);
+
+// Zufällige Animation der Wetterkarten (4D Effekt)
+let weatherKeys = Object.keys(weatherTextures);
+let currentWeather = 0;
+function switchWeather(){
+  const key = weatherKeys[currentWeather];
+  loader.load(weatherTextures[key], tex=>{
+    weatherOverlay.material.map = tex;
+    weatherOverlay.material.needsUpdate = true;
+  });
+  currentWeather = (currentWeather+1)%weatherKeys.length;
+}
+
+// Zeitintervall für 4D-Effekt
+setInterval(switchWeather, 5000);
+
+// Dynamische Wolkenrotation (bereits in Teil 1 vorbereitet)
+scene.traverse(obj=>{
+  if(obj.userData.animate) obj.userData.animate();
+});
+
+// Hurrikan/Tornado Torus für Demo
+const hurricane = new THREE.Mesh(
+  new THREE.TorusGeometry(0.18,0.05,16,100),
+  new THREE.MeshBasicMaterial({color:0xff3300})
+);
+hurricane.position.set(0.6,0.2,0.8);
+scene.add(hurricane);
+
+// 4D Zeit-Slider Manipulation
+function update4D(t){
+  hurricane.rotation.z += 0.05 + t*0.0005;
+  hurricane.scale.setScalar(1 + Math.sin(t*0.2)*0.3);
+}
+
+// Überschreiben animate für 4D
+const oldAnimate = animate;
+animate = function(){
+  requestAnimationFrame(animate);
+  const t = parseFloat(timeSlider.value);
+  update4D(t);
+  oldAnimate();
+};
 </script>
 
 </body>
