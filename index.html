@@ -5,10 +5,8 @@
 <title>NASA-Style DESIGN GLOBE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 
-<!-- Three.js -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
 
@@ -21,42 +19,19 @@
   --orange:#ff9f1c;
   --red:#ff3b3b;
 }
-
-*{box-sizing:border-box;margin:0;padding:0}
-
-body{
-  background:var(--bg);
-  font-family:'Inter',sans-serif;
-  overflow:hidden;
-}
-
-/* UI */
-#topbar{
-  position:absolute;top:0;left:0;right:0;height:60px;
-  display:flex;align-items:center;gap:20px;
-  padding:0 20px;
-  background:linear-gradient(#0c1220,#060912);
-  border-bottom:1px solid var(--border);
-  z-index:10;
-}
-#logo{ font-family:'Orbitron'; color:white; letter-spacing:1px; }
-.tab{
-  padding:8px 16px; border-radius:10px; cursor:pointer; color:#9fb8ff; transition:.25s;
-}
-.tab.active{ background:linear-gradient(180deg,#142a55,#0c1a36); color:white; box-shadow:0 0 14px rgba(0,160,255,.6); }
-#left{
-  position:absolute; top:60px; left:0; bottom:50px; width:260px; padding:14px;
-  background:rgba(8,12,25,.85); border-right:1px solid var(--border); z-index:5;
-}
-.panel{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px; cursor:pointer; transition:.25s; }
-.panel:hover{ box-shadow:0 0 16px rgba(0,234,255,.35); transform:translateX(2px); }
-#bottom{
-  position:absolute; bottom:0; left:260px; right:0; height:50px; display:flex; align-items:center; gap:20px;
-  padding:0 16px; background:#0b132b; border-top:1px solid var(--border); font-size:13px; z-index:5;
-}
-#timelineBox{ margin-left:auto; display:flex; align-items:center; gap:10px; }
-input[type=range]{ width:220px; appearance:none; height:4px; background:linear-gradient(90deg,#2d6cdf,#00eaff,#ff9f1c); border-radius:4px; }
-input[type=range]::-webkit-slider-thumb{ appearance:none; width:16px;height:16px; border-radius:50%; background:white; box-shadow:0 0 12px var(--cyan); }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Inter',sans-serif;overflow:hidden;}
+#topbar{position:absolute;top:0;left:0;right:0;height:60px;display:flex;align-items:center;gap:20px;padding:0 20px;background:linear-gradient(#0c1220,#060912);border-bottom:1px solid var(--border);z-index:10;}
+#logo{font-family:'Orbitron';color:white;letter-spacing:1px;}
+.tab{padding:8px 16px;border-radius:10px;cursor:pointer;color:#9fb8ff;transition:.25s;}
+.tab.active{background:linear-gradient(180deg,#142a55,#0c1a36);color:white;box-shadow:0 0 14px rgba(0,160,255,.6);}
+#left{position:absolute;top:60px;left:0;bottom:50px;width:260px;padding:14px;background:rgba(8,12,25,.85);border-right:1px solid var(--border);z-index:5;}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;transition:.25s;}
+.panel:hover{box-shadow:0 0 16px rgba(0,234,255,.35);transform:translateX(2px);}
+#bottom{position:absolute;bottom:0;left:260px;right:0;height:50px;display:flex;align-items:center;gap:20px;padding:0 16px;background:#0b132b;border-top:1px solid var(--border);font-size:13px;z-index:5;}
+#timelineBox{margin-left:auto;display:flex;align-items:center;gap:10px;}
+input[type=range]{width:220px;appearance:none;height:4px;background:linear-gradient(90deg,#2d6cdf,#00eaff,#ff9f1c);border-radius:4px;}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:white;box-shadow:0 0 12px var(--cyan);}
 </style>
 </head>
 
@@ -81,9 +56,10 @@ input[type=range]::-webkit-slider-thumb{ appearance:none; width:16px;height:16px
 <div id="bottom">🌡 28 °C 🌬 75 km/h 🌧 12 mm</div>
 
 <script>
+// THREE.JS Setup
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,1000);
-camera.position.z = 4;
+camera.position.z=4;
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -97,30 +73,30 @@ const sun = new THREE.DirectionalLight(0xffffff,1.4);
 sun.position.set(5,3,5);
 scene.add(sun);
 
-// Dummy Globe Materialien für sofortiges Laden
-const earth = new THREE.Mesh(
-  new THREE.SphereGeometry(1,64,64),
-  new THREE.MeshPhongMaterial({ color:0x2233ff, shininess:10 })
-);
+// ECHTER Globe Design (procedural)
+const earthMat = new THREE.MeshPhongMaterial({ 
+    color:0x2233ff, 
+    shininess:10, 
+    flatShading:false 
+});
+const earth = new THREE.Mesh(new THREE.SphereGeometry(1,128,128), earthMat);
 scene.add(earth);
 
+const cloudsMat = new THREE.MeshPhongMaterial({ color:0xffffff, transparent:true, opacity:0.3 });
+const clouds = new THREE.Mesh(new THREE.SphereGeometry(1.01,128,128), cloudsMat);
+scene.add(clouds);
+clouds.userData.animate = ()=>{ clouds.rotation.y+=0.0012; };
+
 const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(1.05,64,64),
-  new THREE.MeshBasicMaterial({ color:0x4da6ff, transparent:true, opacity:0.15, side:THREE.BackSide })
+  new THREE.SphereGeometry(1.05,128,128),
+  new THREE.MeshBasicMaterial({color:0x4da6ff,transparent:true,opacity:0.15,side:THREE.BackSide})
 );
 scene.add(atmosphere);
 
-const clouds = new THREE.Mesh(
-  new THREE.SphereGeometry(1.01,64,64),
-  new THREE.MeshPhongMaterial({ color:0xffffff, transparent:true, opacity:0.3 })
-);
-scene.add(clouds);
-clouds.userData.animate = ()=>{ clouds.rotation.y += 0.0012; };
-
-// Weather Overlay Dummy (4D)
+// Wetter Overlay Dummy
 const weatherOverlay = new THREE.Mesh(
-  new THREE.SphereGeometry(1.02,64,64),
-  new THREE.MeshBasicMaterial({color:0x00eaff, transparent:true, opacity:0.2})
+  new THREE.SphereGeometry(1.02,128,128),
+  new THREE.MeshBasicMaterial({color:0x00eaff,transparent:true,opacity:0.2})
 );
 scene.add(weatherOverlay);
 
@@ -132,8 +108,8 @@ const hurricane = new THREE.Mesh(
 hurricane.position.set(0.6,0.2,0.8);
 scene.add(hurricane);
 
-const timeSlider = document.getElementById("time");
-function update4D(t){ hurricane.rotation.z += 0.05 + t*0.0005; hurricane.scale.setScalar(1 + Math.sin(t*0.2)*0.3); }
+const timeSlider=document.getElementById("time");
+function update4D(t){ hurricane.rotation.z+=0.05+t*0.0005; hurricane.scale.setScalar(1+Math.sin(t*0.2)*0.3); }
 
 // Mode Switch
 function setMode(m){
@@ -144,11 +120,11 @@ function setMode(m){
   if(m==="4d") camera.position.set(0,1.4,4);
 }
 
-// Animate Loop
+// Animate
 function animate(){
   requestAnimationFrame(animate);
-  const t = parseFloat(timeSlider.value);
-  earth.rotation.y += 0.0008;
+  const t=parseFloat(timeSlider.value);
+  earth.rotation.y+=0.0008;
   clouds.userData.animate();
   update4D(t);
   controls.update();
@@ -156,8 +132,8 @@ function animate(){
 }
 animate();
 
-onresize = ()=>{
-  camera.aspect = innerWidth/innerHeight;
+onresize=()=>{
+  camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
 };
