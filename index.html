@@ -1,13 +1,17 @@
 <!DOCTYPE html>
-
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>NASA-Style WEATHER-AI Part 1</title>
+<title>NASA-Style WEATHER-AI Realistic Part 1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/BloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/shaders/FXAAShader.js"></script>
 <style>
 body{margin:0; background:#05070d; overflow:hidden; font-family:'Inter',sans-serif;}
 canvas{display:block;}
@@ -51,7 +55,7 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;b
 <div id="bottom">
   🌡 28 °C 🌬 75 km/h 🌧 12 mm
 </div>
-  <script>
+<script>
 // Szene & Kamera
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -62,74 +66,63 @@ document.body.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 
-// Licht
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const sun = new THREE.DirectionalLight(0xffffff,1.2);
-sun.position.set(5,3,5);
-scene.add(sun);
+// Beleuchtung
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+const keyLight = new THREE.DirectionalLight(0xffffff,1.0);
+keyLight.position.set(5,3,5);
+scene.add(keyLight);
 const fillLight = new THREE.DirectionalLight(0xffffff,0.4);
 fillLight.position.set(-5,-3,2);
 scene.add(fillLight);
 
-// Loader für Texturen
+// Texture Loader
 const loader = new THREE.TextureLoader();
+let texturesLoaded = 0;
+const totalTextures = 3;
 
 // Erde
-const earthTexture = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
-const earthLights = loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png');
-const earthMaterial = new THREE.MeshPhongMaterial({
-  map: earthTexture,
-  emissiveMap: earthLights,
-  emissive: 0xffffff,
-  emissiveIntensity: 0.6,
-  shininess: 5
-});
-const earth = new THREE.Mesh(new THREE.SphereGeometry(1,64,64), earthMaterial);
-scene.add(earth);
+let earth;
+const earthMaterial = new THREE.MeshPhongMaterial();
+loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg', tex => {earthMaterial.map = tex; texturesLoaded++; initIfReady();});
+loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png', tex => {earthMaterial.emissiveMap = tex; earthMaterial.emissive = 0xffffff; earthMaterial.emissiveIntensity = 0.6; texturesLoaded++; initIfReady();});
+loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png', tex => {cloudTexture = tex; texturesLoaded++; initIfReady();});
 
-// Atmosphärischer Glow
-const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(1.05,64,64),
-  new THREE.MeshBasicMaterial({color:0x66ccff, transparent:true, opacity:0.15, side:THREE.BackSide})
-);
-scene.add(atmosphere);
-
-// Wolken
-const cloudTexture = loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
-const cloudMaterial = new THREE.MeshPhongMaterial({
-  map: cloudTexture,
-  transparent:true,
-  opacity:0.8,
-  depthWrite:false
-});
-const clouds = new THREE.Mesh(new THREE.SphereGeometry(1.01,64,64), cloudMaterial);
-scene.add(clouds);
-
-// Hurrikane
-const hurricaneGroup = new THREE.Group();
-scene.add(hurricaneGroup);
-for(let i=0;i<6;i++){
-  const torus = new THREE.Mesh(new THREE.TorusGeometry(0.18+i*0.02,0.025,16,100),
-    new THREE.MeshBasicMaterial({color:0xff3300, transparent:true, opacity:0.6-i*0.08})
-  );
-  torus.rotation.x=Math.PI/2;
-  hurricaneGroup.add(torus);
+let clouds;
+let overlay3D;
+let map2D;
+function initIfReady(){
+  if(texturesLoaded < totalTextures) return;
+  // Erde
+  earth = new THREE.Mesh(new THREE.SphereGeometry(1,64,64), earthMaterial);
+  scene.add(earth);
+  // Atmosphäre
+  const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(1.05,64,64), new THREE.MeshBasicMaterial({color:0x66ccff, transparent:true, opacity:0.15, side:THREE.BackSide}));
+  scene.add(atmosphere);
+  // Wolken
+  clouds = new THREE.Mesh(new THREE.SphereGeometry(1.01,64,64), new THREE.MeshPhongMaterial({map:cloudTexture, transparent:true, opacity:0.8, depthWrite:false}));
+  scene.add(clouds);
+  // Hurrikane
+  const hurricaneGroup = new THREE.Group();
+  scene.add(hurricaneGroup);
+  for(let i=0;i<6;i++){
+    const torus = new THREE.Mesh(new THREE.TorusGeometry(0.18+i*0.02,0.025,16,100), new THREE.MeshBasicMaterial({color:0xff3300, transparent:true, opacity:0.6-i*0.08}));
+    torus.rotation.x=Math.PI/2;
+    hurricaneGroup.add(torus);
+  }
+  hurricaneGroup.position.set(0.6,0.2,0.8);
+  // Wetter Overlay
+  const weatherMaps={temperature:0xffcc00, precipitation:0x0066ff, wind:0x33ff33};
+  overlay3D = new THREE.Mesh(new THREE.SphereGeometry(1.03,64,64), new THREE.MeshStandardMaterial({color:weatherMaps.temperature, transparent:true, opacity:0.5}));
+  scene.add(overlay3D);
+  map2D = new THREE.Mesh(new THREE.PlaneGeometry(4,2), new THREE.MeshBasicMaterial({color:weatherMaps.temperature, transparent:true, opacity:0.8}));
+  map2D.visible=false;
+  scene.add(map2D);
+  animate();
 }
-hurricaneGroup.position.set(0.6,0.2,0.8);
 
-// Wetter Overlay
-const weatherMaps={temperature:0xffcc00, precipitation:0x0066ff, wind:0x33ff33};
-const overlay3D = new THREE.Mesh(new THREE.SphereGeometry(1.03,64,64),
-  new THREE.MeshStandardMaterial({color:weatherMaps.temperature, transparent:true, opacity:0.5})
-);
-scene.add(overlay3D);
-const map2D = new THREE.Mesh(new THREE.PlaneGeometry(4,2),
-  new THREE.MeshBasicMaterial({color:weatherMaps.temperature, transparent:true, opacity:0.8})
-);
-map2D.visible=false;
-scene.add(map2D);
-
-let time=0;
 let mode="3d";
 function setMode(m){
   mode=m;
@@ -153,30 +146,29 @@ function setMode(m){
   }
 }
 function setWeather(type){
-  let color=weatherMaps.temperature;
+  const weatherMaps={temperature:0xffcc00, precipitation:0x0066ff, wind:0x33ff33};
+  let color = weatherMaps.temperature;
   if(type==="precipitation") color=weatherMaps.precipitation;
   if(type==="wind") color=weatherMaps.wind;
   overlay3D.material.color.set(color);
   map2D.material.color.set(color);
 }
-const timeSlider=document.getElementById("time");
 
+const timeSlider=document.getElementById("time");
+let time=0;
 function animate(){
   requestAnimationFrame(animate);
+  if(!earth) return;
   const t=parseFloat(timeSlider.value);
   earth.rotation.y+=0.001;
   clouds.rotation.y+=0.0012;
   overlay3D.rotation.y+=0.0012;
-  hurricaneGroup.rotation.z+=0.03;
-  hurricaneGroup.children.forEach((ring,i)=>{
-    const scale=1+Math.sin(time*0.2+i*0.5)*0.25;
-    ring.scale.set(scale,scale,scale);
-  });
+  scene.traverse(obj=>{if(obj.type==='Group') obj.rotation.z+=0.03;});
   time+=0.5;
   controls.update();
   renderer.render(scene,camera);
 }
-animate();
+
 window.addEventListener('resize',()=>{
   camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
