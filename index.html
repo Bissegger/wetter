@@ -2,17 +2,20 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>NASA-Style WEATHER-AI Final</title>
+<title>NASA-Style WEATHER-AI Final mit Ladebalken</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <style>
 body{margin:0; background:#05070d; overflow:hidden; font-family:'Inter',sans-serif;}
 canvas{display:block;}
+/* Ladebildschirm */
+#loader{
+  position:absolute;top:0;left:0;width:100%;height:100%;background:#05070d;display:flex;align-items:center;justify-content:center;flex-direction:column;color:white;z-index:100;
+}
+#progressBarContainer{width:300px;height:20px;border:1px solid #fff;border-radius:10px;margin-top:10px;overflow:hidden;}
+#progressBar{height:100%;width:0%;background:#00eaff;}
 #topbar{position:absolute;top:0;left:0;right:0;height:60px;display:flex;align-items:center;gap:20px;padding:0 20px;background:linear-gradient(#0c1220,#060912);border-bottom:1px solid #1b2a44;z-index:10;}
 #logo{font-family:'Orbitron';letter-spacing:1px;}
 .tab{padding:8px 16px;border-radius:10px;cursor:pointer;color:#9fb8ff;transition:.25s;}
@@ -29,6 +32,14 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;b
 </style>
 </head>
 <body>
+
+<!-- Ladebildschirm -->
+<div id="loader">
+  <div>Lade Wetter-Globus...</div>
+  <div id="progressBarContainer"><div id="progressBar"></div></div>
+</div>
+
+<!-- UI -->
 <div id="topbar">
   <div id="logo">WEATHER-AI NASA</div>
   <div class="tab active" onclick="setMode('3d')">3D Globus</div>
@@ -53,6 +64,7 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;b
 <div id="bottom">
   🌡 28 °C 🌬 75 km/h 🌧 12 mm
 </div>
+
 <script>
 // Szene & Kamera
 const scene = new THREE.Scene();
@@ -67,7 +79,7 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 
-// Beleuchtung
+// Licht
 scene.add(new THREE.AmbientLight(0xffffff,0.5));
 const keyLight = new THREE.DirectionalLight(0xffffff,1.0);
 keyLight.position.set(5,3,5);
@@ -76,43 +88,52 @@ const fillLight = new THREE.DirectionalLight(0xffffff,0.4);
 fillLight.position.set(-5,-3,2);
 scene.add(fillLight);
 
-// Texture Loader & Manager
-const manager = new THREE.LoadingManager(initScene);
+// Lade Manager mit Fortschritt
+const manager = new THREE.LoadingManager();
+const progressBar = document.getElementById("progressBar");
+manager.onProgress = function(url, loaded, total){
+    progressBar.style.width = ((loaded/total)*100) + "%";
+};
+manager.onLoad = function(){
+    // Verstecke Ladebildschirm
+    document.getElementById("loader").style.display = "none";
+    animate();
+};
+
 const loader = new THREE.TextureLoader(manager);
-let earthTexture, earthLights, cloudTexture;
-earthTexture = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
-earthLights = loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png');
-cloudTexture = loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
+let earthTexture = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+let earthLights = loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png');
+let cloudTexture = loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
 
 let earth, clouds, overlay3D, map2D;
+
 function initScene(){
-  // Erde
   earth = new THREE.Mesh(new THREE.SphereGeometry(1,64,64), new THREE.MeshPhongMaterial({
     map:earthTexture, emissiveMap:earthLights, emissive:0xffffff, emissiveIntensity:0.6, shininess:5
   }));
   scene.add(earth);
-  // Wolken
+  
   clouds = new THREE.Mesh(new THREE.SphereGeometry(1.01,64,64), new THREE.MeshPhongMaterial({
     map:cloudTexture, transparent:true, opacity:0.8, depthWrite:false
   }));
   scene.add(clouds);
-  // Atmosphäre
+  
   const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(1.05,64,64), new THREE.MeshBasicMaterial({
     color:0x66ccff, transparent:true, opacity:0.15, side:THREE.BackSide
   }));
   scene.add(atmosphere);
-  // Hurrikane
+  
   const hurricaneGroup = new THREE.Group();
   scene.add(hurricaneGroup);
   for(let i=0;i<6;i++){
     const torus = new THREE.Mesh(new THREE.TorusGeometry(0.18+i*0.02,0.025,16,100), new THREE.MeshBasicMaterial({
       color:0xff3300, transparent:true, opacity:0.6-i*0.08
     }));
-    torus.rotation.x=Math.PI/2;
+    torus.rotation.x = Math.PI/2;
     hurricaneGroup.add(torus);
   }
   hurricaneGroup.position.set(0.6,0.2,0.8);
-  // Wetter Overlay
+  
   const weatherMaps={temperature:0xffcc00, precipitation:0x0066ff, wind:0x33ff33};
   overlay3D = new THREE.Mesh(new THREE.SphereGeometry(1.03,64,64), new THREE.MeshStandardMaterial({
     color:weatherMaps.temperature, transparent:true, opacity:0.5
@@ -121,10 +142,11 @@ function initScene(){
   map2D = new THREE.Mesh(new THREE.PlaneGeometry(4,2), new THREE.MeshBasicMaterial({
     color:weatherMaps.temperature, transparent:true, opacity:0.8
   }));
-  map2D.visible=false;
+  map2D.visible = false;
   scene.add(map2D);
-  animate();
 }
+
+initScene();
 
 let mode="3d";
 function setMode(m){
@@ -159,20 +181,20 @@ function setWeather(type){
 }
 
 const timeSlider=document.getElementById("time");
+
 function animate(){
   requestAnimationFrame(animate);
   if(!earth) return;
-  const t=parseFloat(timeSlider.value);
-  earth.rotation.y+=0.001;
-  clouds.rotation.y+=0.0012;
-  overlay3D.rotation.y+=0.0012;
+  earth.rotation.y += 0.001;
+  clouds.rotation.y += 0.0012;
+  overlay3D.rotation.y += 0.0012;
   scene.traverse(obj=>{if(obj.type==='Group') obj.rotation.z+=0.03;});
   controls.update();
   renderer.render(scene,camera);
 }
 
 window.addEventListener('resize',()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.aspect = window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
