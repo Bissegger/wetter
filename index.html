@@ -1,144 +1,89 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<title>NASA‑Style WEATHER GLOBE</title>
+<meta charset="UTF-8" />
+<title>NASA WEATHER AI – CORE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Three.js -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
 
 <style>
-body{margin:0;overflow:hidden;background:#05070d;font-family:Arial,sans-serif;}
-#topbar{position:absolute;top:0;left:0;right:0;height:60px;display:flex;align-items:center;padding:0 20px;background:linear-gradient(#0c1220,#060912);color:white;z-index:10;}
-#topbar .tab{padding:8px 16px;cursor:pointer;color:#9fb8ff;border-radius:8px;transition:.3s;}
-#topbar .tab.active{background:#0e1a35;color:white;}
-#sliderBox{margin-left:auto;display:flex;align-items:center;gap:8px;}
-input[type=range]{width:200px;}
+html,body{margin:0;height:100%;background:black;overflow:hidden;font-family:Inter,sans-serif}
+#loader{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:#05070d;color:#7fdcff;
+  z-index:10
+}
+#bar{width:260px;height:6px;background:#111;margin-top:14px;border-radius:6px;overflow:hidden}
+#bar div{height:100%;width:0;background:#00eaff;transition:.4s}
+canvas{display:block}
 </style>
 </head>
 
 <body>
 
-<div id="topbar">
-  <div class="tab active" onclick="setMode('3d')">3D Globus</div>
-  <div class="tab" onclick="setMode('2d')">2D Karte</div>
-  <div class="tab" onclick="setMode('4d')">4D Wetter</div>
-  <div id="sliderBox"><span>⏱ 4D</span><input type="range" id="timeSlider" min="0" max="24" value="12"></div>
+<div id="loader">
+  🛰 Initialisiere NASA Globus…
+  <div id="bar"><div></div></div>
 </div>
 
 <script>
-// === Scene, Camera, Renderer ===
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, .1, 1000);
-camera.position.set(0,0,4);
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
+/* PROGRESS */
+const bar=document.querySelector('#bar div');
+const setProgress=p=>bar.style.width=p+'%';
+
+/* THREE */
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,1000);
+camera.position.z=3;
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setClearColor(0x000000);
 document.body.appendChild(renderer.domElement);
 
-// === Controls ===
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+/* LIGHT */
+scene.add(new THREE.AmbientLight(0xffffff,.7));
+const sun=new THREE.DirectionalLight(0xffffff,1.2);
+sun.position.set(5,3,5);
+scene.add(sun);
 
-// === Lighting ===
-scene.add(new THREE.AmbientLight(0xffffff, .6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-dirLight.position.set(5,3,5);
-scene.add(dirLight);
+/* EARTH */
+const loader=new THREE.TextureLoader();
+setProgress(20);
 
-// === Texture Loader ===
-const loader = new THREE.TextureLoader();
+const earthTex = loader.load(
+  "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57730/land_ocean_ice_cloud_2048.jpg",
+  ()=>{setProgress(70);}
+);
 
-// NASA public textures (high‑res)
-const earthTextureURL = "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57730/land_ocean_ice_cloud_2048.jpg";
-const nightTextureURL = "https://eoimages.gsfc.nasa.gov/images/imagerecords/79000/79779/earth_lights_lrg.png";
-
-// Earth Mesh
 const earth = new THREE.Mesh(
   new THREE.SphereGeometry(1,64,64),
-  new THREE.MeshPhongMaterial({color:0x888888})
+  new THREE.MeshPhongMaterial({map:earthTex})
 );
 scene.add(earth);
 
-// Night lights overlay
-const nightLayer = new THREE.Mesh(
-  new THREE.SphereGeometry(1.005,64,64),
-  new THREE.MeshPhongMaterial({transparent:true, opacity:0.5, blending:THREE.AdditiveBlending})
-);
-scene.add(nightLayer);
+/* 10s DELAY – Wetter / Atmosphere Platzhalter */
+setTimeout(()=>{
+  setProgress(100);
+  document.getElementById('loader').style.display="none";
+},10000);
 
-// 2D Plane (flat map)
-const map2D = new THREE.Mesh(
-  new THREE.PlaneGeometry(4,2),
-  new THREE.MeshBasicMaterial({color:0x222222})
-);
-map2D.visible = false;
-scene.add(map2D);
-
-// Clouds (procedural)
-const cloudLayer = new THREE.Mesh(
-  new THREE.SphereGeometry(1.02,64,64),
-  new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.3})
-);
-scene.add(cloudLayer);
-
-// Mode handling
-let mode = "3d";
-function setMode(m){
-  mode = m;
-  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-  event.target.classList.add("active");
-  if(m==="2d"){
-    map2D.visible=true;
-    earth.visible=false;
-    nightLayer.visible=false;
-    cloudLayer.visible=false;
-    camera.position.set(0,0,4);
-  } else {
-    map2D.visible=false;
-    earth.visible=true;
-    nightLayer.visible=true;
-    cloudLayer.visible=true;
-    if(m==="3d") camera.position.set(0,0,4);
-    if(m==="4d") camera.position.set(0,1.5,4);
-  }
-}
-
-// Time slider for 4D effect
-const timeSlider = document.getElementById("timeSlider");
-timeSlider.oninput = ()=>{};
-
-// === Load Textures ===
-loader.load(earthTextureURL, tex=>{
-  earth.material.map = tex;
-  earth.material.needsUpdate=true;
-});
-loader.load(nightTextureURL, tex=>{
-  nightLayer.material.map = tex;
-  nightLayer.material.needsUpdate=true;
-});
-
-// === Animate ===
+/* LOOP */
 function animate(){
   requestAnimationFrame(animate);
-  // rotate globe and clouds
-  earth.rotation.y += 0.0005;
-  cloudLayer.rotation.y += 0.0007;
-  nightLayer.rotation.y = earth.rotation.y;
-
-  // render
-  renderer.render(scene, camera);
+  earth.rotation.y+=0.0006;
+  renderer.render(scene,camera);
 }
 animate();
 
-// === Resize Handler ===
-window.addEventListener("resize", ()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
+onresize=()=>{
+  camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+  renderer.setSize(innerWidth,innerHeight);
+};
 </script>
 
 </body>
