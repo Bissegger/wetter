@@ -2,114 +2,20 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>WEATHER-AI NASA STYLE</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-
-<style>
-body { margin:0; background:#05070d; overflow:hidden; }
-#loader{
-  position:fixed; inset:0;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  background:#05070d; color:white;
-  font-family:Arial; z-index:10;
-}
-#bar{ width:300px; height:10px; background:#222; margin-top:10px; }
-#bar div{ height:100%; width:0%; background:#00eaff; }
-</style>
+<title>WebGL Test</title>
 </head>
+<body style="margin:0;background:black;color:white">
 
-<body>
-
-<div id="loader">
-  <div>Initialisiere Globus…</div>
-  <div id="bar"><div></div></div>
-</div>
+<h1>JS TEST</h1>
 
 <script>
-/* === BASIC SETUP (RENDERT SOFORT) === */
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.z = 4;
+alert("JavaScript läuft");
 
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(devicePixelRatio);
-document.body.appendChild(renderer.domElement);
-
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-
-/* === LICHT === */
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const sun = new THREE.DirectionalLight(0xffffff, 1.2);
-sun.position.set(5,3,5);
-scene.add(sun);
-
-/* === PLATZHALTER-GLOBUS (SOFORT SICHTBAR) === */
-const earth = new THREE.Mesh(
-  new THREE.SphereGeometry(1,64,64),
-  new THREE.MeshStandardMaterial({ color:0x2233ff })
-);
-scene.add(earth);
-
-/* === ANIMATION STARTET IMMER === */
-function animate(){
-  requestAnimationFrame(animate);
-  earth.rotation.y += 0.001;
-  controls.update();
-  renderer.render(scene,camera);
+if (!window.WebGLRenderingContext) {
+  document.body.innerHTML += "<p>❌ WebGL NICHT verfügbar</p>";
+} else {
+  document.body.innerHTML += "<p>✅ WebGL verfügbar</p>";
 }
-animate();
-
-/* === TEXTURE LOADING (NACHTRÄGLICH) === */
-const bar = document.querySelector("#bar div");
-const loader = new THREE.TextureLoader();
-let loaded = 0;
-
-function loadTexture(url, cb){
-  loader.load(url, tex=>{
-    loaded++;
-    bar.style.width = (loaded/3*100)+"%";
-    cb(tex);
-    if(loaded===3){
-      document.getElementById("loader").style.display="none";
-    }
-  });
-}
-
-loadTexture(
-  "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
-  tex => earth.material.map = tex
-);
-
-loadTexture(
-  "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
-  tex => {
-    earth.material.emissiveMap = tex;
-    earth.material.emissive = new THREE.Color(0xffffff);
-    earth.material.emissiveIntensity = 0.6;
-  }
-);
-
-loadTexture(
-  "https://threejs.org/examples/textures/planets/earth_clouds_1024.png",
-  tex => {
-    const clouds = new THREE.Mesh(
-      new THREE.SphereGeometry(1.01,64,64),
-      new THREE.MeshStandardMaterial({ map:tex, transparent:true, opacity:0.7 })
-    );
-    scene.add(clouds);
-  }
-);
-
-window.onresize = ()=>{
-  camera.aspect = innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-};
 </script>
 
 </body>
