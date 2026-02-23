@@ -1,8 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>NASA-Style WEATHER-AI 4D Realistisch</title>
+<title>NASA-Style WEATHER-AI 4D Realistisch Part 1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
@@ -57,7 +58,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
 camera.position.set(0,1.4,4);
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.innerWidth,window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -80,7 +81,7 @@ const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(1.05,64,64),
 );
 scene.add(atmosphere);
 
-// Procedural Wolken mit Noise
+// Procedural Wolken
 const cloudGeo = new THREE.SphereGeometry(1.02,64,64);
 const cloudMat = new THREE.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.3});
 const clouds = new THREE.Mesh(cloudGeo, cloudMat);
