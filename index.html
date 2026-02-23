@@ -3,12 +3,11 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>NASA-Style WEATHER-AI 4D Realistisch Part 1</title>
+<title>NASA-Style WEATHER-AI Part 1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/libs/perlin.js"></script>
 <style>
 body{margin:0; background:#05070d; overflow:hidden; font-family:'Inter',sans-serif;}
 canvas{display:block;}
@@ -52,7 +51,7 @@ input[type=range]::-webkit-slider-thumb{appearance:none;width:16px;height:16px;b
 <div id="bottom">
   🌡 28 °C 🌬 75 km/h 🌧 12 mm
 </div>
-<script>
+  <script>
 // Szene & Kamera
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -62,24 +61,28 @@ renderer.setSize(window.innerWidth,window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 // Licht
-scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const sun = new THREE.DirectionalLight(0xffffff,1.2);
 sun.position.set(5,3,5);
 scene.add(sun);
+const fillLight = new THREE.DirectionalLight(0xffffff,0.4);
+fillLight.position.set(-5,-3,2);
+scene.add(fillLight);
 
 // Loader für Texturen
 const loader = new THREE.TextureLoader();
 
-// Erde mit echten Texturen
+// Erde
 const earthTexture = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
 const earthLights = loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png');
 const earthMaterial = new THREE.MeshPhongMaterial({
   map: earthTexture,
   emissiveMap: earthLights,
   emissive: 0xffffff,
-  emissiveIntensity: 0.5,
+  emissiveIntensity: 0.6,
   shininess: 5
 });
 const earth = new THREE.Mesh(new THREE.SphereGeometry(1,64,64), earthMaterial);
@@ -91,12 +94,13 @@ const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(1.05,64,64),
 );
 scene.add(atmosphere);
 
-// Wolken mit Textur
+// Wolken
 const cloudTexture = loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
 const cloudMaterial = new THREE.MeshPhongMaterial({
   map: cloudTexture,
   transparent:true,
-  opacity:0.8
+  opacity:0.8,
+  depthWrite:false
 });
 const clouds = new THREE.Mesh(new THREE.SphereGeometry(1.01,64,64), cloudMaterial);
 scene.add(clouds);
@@ -113,7 +117,7 @@ for(let i=0;i<6;i++){
 }
 hurricaneGroup.position.set(0.6,0.2,0.8);
 
-// Wetterkarten Overlay
+// Wetter Overlay
 const weatherMaps={temperature:0xffcc00, precipitation:0x0066ff, wind:0x33ff33};
 const overlay3D = new THREE.Mesh(new THREE.SphereGeometry(1.03,64,64),
   new THREE.MeshStandardMaterial({color:weatherMaps.temperature, transparent:true, opacity:0.5})
