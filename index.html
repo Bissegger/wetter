@@ -1,99 +1,15 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>NASA GLOBE VISIBILITY FIX</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
-
-<style>
-body {
-  margin: 0;
-  background: #000;
-  overflow: hidden;
-}
-#info {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  color: #00eaff;
-  font-family: monospace;
-  z-index: 10;
-}
-</style>
-</head>
-
-<body>
-
-<div id="info">🛰 DEBUG MODE – Globe sollte sichtbar sein</div>
-
+<html>
+<body style="margin:0;background:black">
+<canvas id="c"></canvas>
 <script>
-// === SCENE ===
-const scene = new THREE.Scene();
-
-// === CAMERA ===
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 0, 5);
-camera.lookAt(0, 0, 0);
-
-// === RENDERER ===
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(0x02040a, 1); // 🔥 wichtig
-document.body.appendChild(renderer.domElement);
-
-// === CONTROLS ===
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-
-// === DEBUG HELPERS (UNÜBERSEHBAR) ===
-scene.add(new THREE.AxesHelper(3));   // RGB Achsen
-scene.add(new THREE.GridHelper(10, 10));
-
-// === LICHT (ÜBERTRIEBEN HELL) ===
-scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-
-const sun = new THREE.DirectionalLight(0xffffff, 3);
-sun.position.set(5, 5, 5);
-scene.add(sun);
-
-// === GLOBUS (MAXIMAL SICHTBAR) ===
-const globe = new THREE.Mesh(
-  new THREE.SphereGeometry(1.2, 64, 64),
-  new THREE.MeshBasicMaterial({
-    color: 0x00aaff, // knallblau
-    wireframe: false
-  })
+const c = document.getElementById("c");
+c.width = innerWidth;
+c.height = innerHeight;
+const gl = c.getContext("webgl");
+document.body.insertAdjacentHTML("beforeend",
+  "<p style='color:white'>" + (gl ? "WebGL OK" : "WebGL FAIL") + "</p>"
 );
-scene.add(globe);
-
-// === TEST: ROTER PUNKT ===
-const testCube = new THREE.Mesh(
-  new THREE.BoxGeometry(0.2, 0.2, 0.2),
-  new THREE.MeshBasicMaterial({ color: 0xff0000 })
-);
-testCube.position.set(2, 0, 0);
-scene.add(testCube);
-
-// === LOOP ===
-function animate() {
-  requestAnimationFrame(animate);
-  globe.rotation.y += 0.01;
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
-
-// === RESIZE ===
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
-
 </body>
 </html>
