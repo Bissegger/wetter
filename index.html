@@ -59,7 +59,6 @@ const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHei
 camera.position.set(0,1.4,4);
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth,window.innerHeight);
-renderer.autoClear = true;
 document.body.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -70,10 +69,20 @@ const sun = new THREE.DirectionalLight(0xffffff,1.2);
 sun.position.set(5,3,5);
 scene.add(sun);
 
-// Globus mit Basisfarbe, sofort sichtbar
-const earthMaterial = new THREE.MeshStandardMaterial({color:0x3399ff, roughness:0.7, metalness:0.1});
-const earthGeometry = new THREE.SphereGeometry(1,64,64);
-const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+// Loader für Texturen
+const loader = new THREE.TextureLoader();
+
+// Erde mit echten Texturen
+const earthTexture = loader.load('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+const earthLights = loader.load('https://threejs.org/examples/textures/planets/earth_lights_2048.png');
+const earthMaterial = new THREE.MeshPhongMaterial({
+  map: earthTexture,
+  emissiveMap: earthLights,
+  emissive: 0xffffff,
+  emissiveIntensity: 0.5,
+  shininess: 5
+});
+const earth = new THREE.Mesh(new THREE.SphereGeometry(1,64,64), earthMaterial);
 scene.add(earth);
 
 // Atmosphärischer Glow
@@ -82,32 +91,29 @@ const atmosphere = new THREE.Mesh(new THREE.SphereGeometry(1.05,64,64),
 );
 scene.add(atmosphere);
 
-// Procedural Wolken
-const cloudGeo = new THREE.SphereGeometry(1.02,64,64);
-const cloudMat = new THREE.MeshStandardMaterial({color:0xffffff, transparent:true, opacity:0.5});
-const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+// Wolken mit Textur
+const cloudTexture = loader.load('https://threejs.org/examples/textures/planets/earth_clouds_1024.png');
+const cloudMaterial = new THREE.MeshPhongMaterial({
+  map: cloudTexture,
+  transparent:true,
+  opacity:0.8
+});
+const clouds = new THREE.Mesh(new THREE.SphereGeometry(1.01,64,64), cloudMaterial);
 scene.add(clouds);
-
-function updateClouds(){
-  cloudGeo.vertices.forEach(v=>{
-    v.normalize().multiplyScalar(1.02 + 0.005 * noise.perlin3(v.x + time*0.01,v.y,v.z));
-  });
-  cloudGeo.verticesNeedUpdate = true;
-}
 
 // Hurrikane
 const hurricaneGroup = new THREE.Group();
 scene.add(hurricaneGroup);
 for(let i=0;i<6;i++){
   const torus = new THREE.Mesh(new THREE.TorusGeometry(0.18+i*0.02,0.025,16,100),
-    new THREE.MeshBasicMaterial({color:0xff6600, transparent:true, opacity:0.6-i*0.08})
+    new THREE.MeshBasicMaterial({color:0xff3300, transparent:true, opacity:0.6-i*0.08})
   );
   torus.rotation.x=Math.PI/2;
   hurricaneGroup.add(torus);
 }
 hurricaneGroup.position.set(0.6,0.2,0.8);
 
-// Wetterkarten
+// Wetterkarten Overlay
 const weatherMaps={temperature:0xffcc00, precipitation:0x0066ff, wind:0x33ff33};
 const overlay3D = new THREE.Mesh(new THREE.SphereGeometry(1.03,64,64),
   new THREE.MeshStandardMaterial({color:weatherMaps.temperature, transparent:true, opacity:0.5})
@@ -153,14 +159,10 @@ const timeSlider=document.getElementById("time");
 
 function animate(){
   requestAnimationFrame(animate);
-  // Nur rendern, wenn Materialien fertig
-  if(!earth.material || !clouds.material) return;
-
   const t=parseFloat(timeSlider.value);
   earth.rotation.y+=0.001;
-  clouds.rotation.y+=0.0015;
-  overlay3D.rotation.y+=0.0015;
-  updateClouds();
+  clouds.rotation.y+=0.0012;
+  overlay3D.rotation.y+=0.0012;
   hurricaneGroup.rotation.z+=0.03;
   hurricaneGroup.children.forEach((ring,i)=>{
     const scale=1+Math.sin(time*0.2+i*0.5)*0.25;
