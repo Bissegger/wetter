@@ -1,69 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-<meta charset="utf-8">
-<title>NASA Globe Test</title>
-<style>
-html,body{margin:0;height:100%;background:black;overflow:hidden}
-</style>
+<meta charset="UTF-8">
+<title>NASA WEATHER AI – VISUAL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+
+<style>
+html,body{
+  margin:0;
+  height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:Inter,system-ui,sans-serif;
+}
+#loader{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:#05070d;
+  color:#8fdcff;
+  z-index:10;
+}
+#bar{
+  width:280px;height:6px;
+  background:#111;
+  border-radius:6px;
+  margin-top:14px;
+  overflow:hidden;
+}
+#bar div{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#00eaff,#4da3ff);
+  transition:.4s;
+}
+canvas{display:block}
+</style>
 </head>
+
 <body>
 
+<div id="loader">
+  🛰 Initialisiere NASA Visualisierung…
+  <div id="bar"><div></div></div>
+</div>
+
 <script>
+const bar = document.querySelector('#bar div');
+const progress = p => bar.style.width = p + '%';
+
+/* SCENE */
 const scene = new THREE.Scene();
 
-const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+/* CAMERA */
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
 camera.position.z = 3;
 
+/* RENDERER */
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
-renderer.setClearColor(0x000000);
+renderer.setPixelRatio(devicePixelRatio);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
 document.body.appendChild(renderer.domElement);
 
 /* LIGHT */
-scene.add(new THREE.AmbientLight(0xffffff, 1));
-const sun = new THREE.DirectionalLight(0xffffff, 1);
-sun.position.set(5,5,5);
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(5,3,5);
 scene.add(sun);
 
-/* MATERIAL mit FALLBACK */
-const material = new THREE.MeshPhongMaterial({
-  color: 0x2266ff,   // Fallback → MUSS sichtbar sein
-  wireframe: false
-});
-
-/* GLOBUS */
-const globe = new THREE.Mesh(
-  new THREE.SphereGeometry(1, 64, 64),
-  material
-);
-scene.add(globe);
-
-/* TEXTURE */
+/* TEXTURE LOADER */
 const loader = new THREE.TextureLoader();
 loader.crossOrigin = "anonymous";
 
-loader.load(
-  "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
-  tex => {
-    console.log("✅ Textur geladen");
-    material.map = tex;
-    material.needsUpdate = true;
-  },
-  undefined,
-  err => {
-    console.error("❌ Textur Fehler", err);
-  }
-);
+/* EARTH */
+progress(15);
+const earthMat = new THREE.MeshPhongMaterial({
+  map: loader.load(
+    "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+    ()=>progress(40)
+  ),
+  specular: new THREE.Color(0x333333),
+  shininess: 15
+});
 
+const earth = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 64, 64),
+  earthMat
+);
+scene.add(earth);
+
+/* NIGHT LIGHTS */
+const night = new THREE.Mesh(
+  new THREE.SphereGeometry(1.001, 64, 64),
+  new THREE.MeshBasicMaterial({
+    map: loader.load(
+      "https://threejs.org/examples/textures/planets/earth_lights_2048.png",
+      ()=>progress(55)
+    ),
+    blending: THREE.AdditiveBlending,
+    transparent:true,
+    opacity:0.8
+  })
+);
+scene.add(night);
+
+/* CLOUDS */
+const clouds = new THREE.Mesh(
+  new THREE.SphereGeometry(1.01, 64, 64),
+  new THREE.MeshPhongMaterial({
+    map: loader.load(
+      "https://threejs.org/examples/textures/planets/earth_clouds_1024.png",
+      ()=>progress(70)
+    ),
+    transparent:true,
+    opacity:0.75
+  })
+);
+scene.add(clouds);
+
+/* ATMOSPHERE */
+const atmosphere = new THREE.Mesh(
+  new THREE.SphereGeometry(1.06, 64, 64),
+  new THREE.MeshBasicMaterial({
+    color:0x4da3ff,
+    transparent:true,
+    opacity:0.08
+  })
+);
+scene.add(atmosphere);
+
+/* DELAYED FINISH */
+setTimeout(()=>{
+  progress(100);
+  document.getElementById('loader').style.display="none";
+},10000);
+
+/* LOOP */
 function animate(){
   requestAnimationFrame(animate);
-  globe.rotation.y += 0.005;
-  renderer.render(scene, camera);
+  earth.rotation.y += 0.0006;
+  night.rotation.y += 0.0006;
+  clouds.rotation.y += 0.0009;
+  renderer.render(scene,camera);
 }
 animate();
 
+/* RESIZE */
 onresize=()=>{
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
